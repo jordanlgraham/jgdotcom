@@ -407,6 +407,7 @@ fieldset {
   border-style: solid;
   border-width: 1px;
   overflow: hidden;
+  min-height: 300px;
 }
 
 #header-watermark {
