@@ -24,9 +24,14 @@ NOTE: the date format is an ISO8601 subset, so use the
 
 -------------- Inline HTML Examples --------------
 
-Countdown timer:
+Countdown timer (with DateTime specified):
 <span class="jst_timer">
  <span style="display:none" class="datetime">2015-05-02T08:11:00-08:00</span>
+</span>
+
+Countdown timer (with interval specified in seconds):
+<span class="jst_timer">
+ <span style="display:none" class="interval">22</span>
 </span>
 
 Countdown timer with output format number setting:
@@ -34,7 +39,6 @@ Countdown timer with output format number setting:
 <span class="datetime" style="display: none;">2015-11-27T10:15:00-07:00</span>
 <span class="format_num" style="display:none;">2</span>
 </span>
-
 
 Count up timer:
 <span class="jst_timer">
@@ -49,8 +53,13 @@ NASA style down/up timer:
   <span class="format_txt" style="display:none;">%sign%%hours%::%mins%::%secs%</span>
 </span>
 
+SVG Clock:
+<span class="jst_clock">
+ <span style="display:none" class="clock_type">3</span>
+ <span style="display:none" class="size">400</span>
+</span>
 
-Clock:
+HTML Canvas Clock:
 <span class="jst_clock">
  <span style="display:none" class="clock_type">2</span>
  <span style="display:none" class="size">200</span>
@@ -126,27 +135,29 @@ IMPORTANT: If you have a format_num and a format_txt in a timer, the format_txt
 value will trump the format_num value.
 
 Currently supported replacement values are:
+
+Target date replacements:
 %day%   - Day number of target date (0-31)
 %month% - Month number of target date (1-12)
-%year%  - Year number of target date (4 digit number)
+%year%  - Year number of target date (2013)
 %dow%   - Day-Of-Week (Mon-Sun)
 %moy%   - Month-Of-Year (Jan-Dec)
 
-%years% - Years from set date(integer number)
+Duration/Interval replacements:
+%years% - Years from set date (ex:2013, integer number)
 %ydays% - (Days - Years) from set date(integer number)
-
 %days%  - Total Days from set date (integer number)
-
 %hours% - (Hours - Days) from set date (integer number, zero padded)
-%mins%  - (Minutes - Hours) from set date (intger number, zero padded)
-%secs%  - (Seconds - Minutes) from set date (integer number, zero padded)
-
 %hours_nopad% - (Hours - Days) from set date (integer number, no padding)
+%mins%  - (Minutes - Hours) from set date (intger number, zero padded)
 %mins_nopad%  - (Minutes - Hours) from set date (intger number, no padding)
-%secs_nopad%  - (Seconds - Minutes) from set date (integer number, no padding)
-
+%secs%  - (Seconds - Minutes) from set date (integer number, zero padded)
+%secs_nopad%   - (Seconds - Minutes) from set date (integer number, no padding)
 %months%       - (Months - Years) from set date, will be 11 or less (integer number)
-%tot_months%   - Months from set date, can be larger than 11 (integer number)
+%tot_months%   - Total months from set date, can be larger than 11 (integer number)
+%tot_hours%    - Total hours from set date, can be larger than 23 (integer number)
+%tot_minutes%  - Total minutes from set date, can be larger than 59 (integer number)
+%tot_seconds%  - Total seconds from set date, can be larger than 59 (integer number)
 %sign%         - Is used for NASA style countdown, will be '-' before set date and '' after set date (blank or '-')
 
 

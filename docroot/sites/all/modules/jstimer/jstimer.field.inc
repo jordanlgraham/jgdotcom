@@ -68,7 +68,8 @@ function jstimer_field_formatter_settings_summary($field, $instance, $view_mode)
 
 /**
  * Implements hook_field_formatter_view().
- *
+ * Normal behavior for two date fields is to use value1 where it is available.
+ * Use value2 only if value1 is empty.
  */
 function jstimer_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
@@ -85,15 +86,13 @@ function jstimer_field_formatter_view($entity_type, $entity, $field, $instance, 
       }
       else {
         $dates = date_formatter_process('date_default', $entity_type, $entity, $field, $instance, $langcode, $item, $display);
-        if (empty($item['value2']) || $item['value'] == $item['value2']) {
-          $widget_args = _jstimer_date_to_widget($dates['value']['formatted_iso'], $display['type'], $settings);
-          $element[$delta] = array('#markup' => theme('jstimer', $widget_args));
+        if (empty($item['value'])) {
+          $widget_args = _jstimer_date_to_widget($dates['value2']['formatted_iso'], $display['type'], $settings);
         }
         else {
-          $widget_val = _jstimer_date_to_widget($dates['value']['formatted_iso'], $display['type'], $settings);
-          $widget_val2 = _jstimer_date_to_widget($dates['value2']['formatted_iso'], $display['type'], $settings);
-          $element[$delta] = array('#markup' => t('!start-date to !end-date', array('!start-date' => theme('jstimer', $widget_val), '!end-date' => theme('jstimer', $widget_val2))));
+          $widget_args = _jstimer_date_to_widget($dates['value']['formatted_iso'], $display['type'], $settings);
         }
+        $element[$delta] = array('#markup' => theme('jstimer', $widget_args));
       }
     }
   }

@@ -9,6 +9,8 @@
 define('DEFAULT_TIMER_COMPLETE', '<em>Timer Completed</em>');
 define('DEFAULT_HIGHLIGHT', 'style="color:red"');
 define('DEFAULT_HIGHLIGHT_THRESHOLD', '5');
+define('DEFAULT_HIGHLIGHT_DOWN', '1');
+define('DEFAULT_HIGHLIGHT_UP', '0');
 
 /**
  * Settings for the default formatter.
@@ -28,7 +30,7 @@ function jst_timer_formatter_settings_form($field, $instance, $view_mode, $form,
   );
 
   $form['format_txt'] = array(
-    '#type' => 'textfield',
+    '#type' => 'textarea',
     '#title' => t('Format of the timer:'),
     '#default_value' => $settings['format_txt'],
     '#weight' => 1,
@@ -69,6 +71,8 @@ $timer_complete_message = "'". jstimer_clean_for_javascript(variable_get('jst_ti
 $timer_complete_alert_message = "'" . jstimer_clean_for_javascript(variable_get('jst_timer_complete_alert_message', '')) . "'";
 $highlight = "'" . jstimer_clean_for_javascript(variable_get('jstimer_highlight', DEFAULT_HIGHLIGHT)) ."'";
 $highlight_threshold = "'" . jstimer_clean_for_javascript(variable_get('jstimer_highlight_threshold', DEFAULT_HIGHLIGHT_THRESHOLD)) . "'";
+$highlight_down = "'" . jstimer_clean_for_javascript(variable_get('jstimer_highlight_down', DEFAULT_HIGHLIGHT_DOWN)) . "'";
+$highlight_up = "'" . jstimer_clean_for_javascript(variable_get('jstimer_highlight_up', DEFAULT_HIGHLIGHT_UP)) . "'";
 $redirect_path = "'" . variable_get('jst_timer_redirect_path', '') . "'";
 $redirect_delay = "'" . variable_get('jst_timer_redirect_delay', 3) . "'";
 
@@ -213,6 +217,9 @@ Drupal.jstimer.jst_timer_item = function(ele) {
       outhtml = outhtml.replace(/%secs% seconds/, Drupal.formatPlural(duration.seconds, "1 second", "@count seconds"));
       outhtml = outhtml.replace(/%months% months/, Drupal.formatPlural(duration.months, "1 month", "@count months"));
       outhtml = outhtml.replace(/%tot_months% months/, Drupal.formatPlural(duration.tot_months, "1 month", "@count months"));
+      outhtml = outhtml.replace(/%tot_hours% hours/, Drupal.formatPlural(duration.tot_months, "1 hour", "@count hours"));
+      outhtml = outhtml.replace(/%tot_mins% minutes/, Drupal.formatPlural(duration.tot_mins, "1 minute", "@count minutes"));
+      outhtml = outhtml.replace(/%tot_hours% seconds/, Drupal.formatPlural(duration.tot_secs, "1 second", "@count seconds"));
     }
     catch(e){
       // suppress errors
@@ -231,11 +238,25 @@ Drupal.jstimer.jst_timer_item = function(ele) {
     outhtml = outhtml.replace(/%sign%/, duration.sign < 0 ? '-' : '+');
     outhtml = outhtml.replace(/%months%/, duration.months);
     outhtml = outhtml.replace(/%tot_months%/, duration.tot_months);
+    outhtml = outhtml.replace(/%tot_hours%/, duration.tot_hours);
+    outhtml = outhtml.replace(/%tot_mins%/, duration.tot_mins);
+    outhtml = outhtml.replace(/%tot_secs%/, duration.tot_secs);
 
-    // Proximity styling.
-    if (this.props['highlight'][0] != undefined && this.props['highlight'][0] != '' && this.props['dir'] == "down" && (duration.diff <= (this.props['threshold'] * 60))) {
+    // Proximity styling
+    if (this.props['dir'] == "down"
+        && $highlight_down =="1"
+        && (duration.diff <= (this.props['threshold'] * 60))
+        && this.props['highlight'][0]) {
       this.element.html('<span ' + this.props['highlight'][0] + '=' + this.props['highlight'][1] + '>' +  outhtml + '</span>');
-    } else {
+    }
+    else if (this.props['dir'] == "up"
+        && $highlight_up =="1"
+        && (duration.sign > 0 || (duration.diff <= (this.props['threshold'] * 60)))
+        && this.props['highlight'][0]) {
+      this.element.html('<span ' + this.props['highlight'][0] + '=' + this.props['highlight'][1] + '>' +  outhtml + '</span>');
+    }
+    // No proximity styling
+    else {
       this.element.html(outhtml);
     }
 
@@ -243,7 +264,7 @@ Drupal.jstimer.jst_timer_item = function(ele) {
   }
 
   this.get_duration = function(now, target) {
-    var dur = {diff:0, sign:0, years:0, months:0, days:0, hours:0, minutes:0, seconds:0, tot_months:0, tot_days:0};
+    var dur = {diff:0, sign:0, years:0, months:0, days:0, hours:0, minutes:0, seconds:0, tot_months:0, tot_days:0, tot_hours:0, tot_mins:0, tot_secs:0};
     dur.diff = Math.floor((now.getTime() - target.getTime()) / 1000);
     if ( dur.diff < 0 ) {
       dur.sign = -1;
@@ -253,6 +274,13 @@ Drupal.jstimer.jst_timer_item = function(ele) {
     }
 
     dur.years = Math.floor(dur.diff / 60 / 60 / 24 / 365.25);
+
+    // Total hours
+    dur.tot_hours = Math.floor(dur.diff / 60.0 / 60.0);
+    // Total minutes
+    dur.tot_mins = Math.floor(dur.diff / 60.0);
+    // Total seconds
+    dur.tot_secs = Math.floor(dur.diff);
 
     // Use calendar months, using months based on seconds is problematic.
     if(now.getFullYear() == target.getFullYear()) {
@@ -387,12 +415,12 @@ function jst_timer_form_alter(&$form, $form_state, $form_id) {
         '#rows' => 1,
         '#title' => t('Format preset %preset_num', array('%preset_num' => $i + 1)),
         '#default_value' => '',
-        '#description' => t('Add a new preset.'),
+        '#description' => t('Add a new preset.  After you save, another blank one will be added.'),
       );
 
       $form['jst_timer']['actions'] = array(
         '#type' => 'fieldset',
-        '#title' => t('Countdown timer actions'),
+        '#title' => t('Timer actions'),
         '#weight' => 1,
         '#description' => t('Javascript actions that execute when a countdown timer completes or nears completion.'),
       );
@@ -412,6 +440,24 @@ function jst_timer_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('CSS statement'),
         '#default_value' => variable_get('jstimer_highlight', DEFAULT_HIGHLIGHT),
         '#description' => t("Use a complete css attribute statement like style=\"\" or class=\"\"."),
+      );
+      $form['jst_timer']['actions']['proximity']['jstimer_highlight_threshold'] = array(
+        '#type' => 'textfield',
+        '#size' => 5,
+        '#title' => t('Threshold (minutes)'),
+        '#default_value' => variable_get('jstimer_highlight_threshold', DEFAULT_HIGHLIGHT_THRESHOLD),
+        '#description' => t("Number of minutes before css statement is applied."),
+      );
+      $form['jst_timer']['actions']['proximity']['jstimer_highlight_down'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Apply to countdown timers'),
+        '#default_value' => variable_get('jstimer_highlight_down', DEFAULT_HIGHLIGHT_DOWN),
+      );
+      $form['jst_timer']['actions']['proximity']['jstimer_highlight_up'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Apply to down/up (NASA) timers'),
+        '#default_value' => variable_get('jstimer_highlight_up', DEFAULT_HIGHLIGHT_UP),
+        '#description' => t("Styling latches (ie stays on forever after the threshold has been reached)."),
       );
       $form['jst_timer']['actions']['proximity']['jstimer_highlight_threshold'] = array(
         '#type' => 'textfield',

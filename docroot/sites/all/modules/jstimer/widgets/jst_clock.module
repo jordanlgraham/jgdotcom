@@ -15,6 +15,9 @@ define('DEFAULT_CLOCK_TYPE', '0');
  */
 function jst_clock_jstwidget() {
 
+$mod_path = drupal_get_path('module', 'jst_clock');
+$svg_file = variable_get('jst_clock_sva_file', 'sleek1.svg');
+
 $ret = new stdClass();
 $ret->name = 'jst_clock';
 $ret->label = t('Clock');
@@ -178,6 +181,20 @@ Drupal.jstimer.jst_clock_item = function(ele) {
       }
     }
 
+    // SVG Clock
+    else if ( this.props['clock_type'] == 3 ) {
+      if (this.clock && !this.clockSvgWin) {
+        this.clockSvgWin = getSvgWindow(clock);
+      }
+      if (this.clock && this.clockSvgWin) {
+        try{
+          this.clockSvgWin.animate();
+        } 
+        catch(err) {
+          //Some browsers will have a timing error and require one more iteration.
+        }
+      }
+    }
     return true;
   }
 
@@ -193,6 +210,14 @@ Drupal.jstimer.jst_clock_item = function(ele) {
     this.canvas.attr("height",this.props['size']);
     this.element.append(this.canvas);
   }
+  else if ( this.props['clock_type'] == 3 ) {
+    var clock = jQuery('<object data="/$mod_path/clocks/$svg_file" type="image/svg+xml"></object>');
+    clock.attr('width',this.props['size']);
+    clock.attr('height',this.props['size']);
+    this.element.html('');
+    this.element.append(clock);
+    this.clock = clock;
+  }
 
 
 }
@@ -201,6 +226,36 @@ function supports_canvas() {
   return !!document.createElement('canvas').getContext;
 }
 
+function getSvgWindow(clock) {
+  var svgDoc;
+  var svgWin;
+  var jsClock = clock.get(0);
+  if (jsClock.contentDocument) {
+    svgDoc = jsClock.contentDocument; //get the inner DOM of alpha.svg
+  }
+  else {
+    try {
+      svgDoc = jsClock.getSVGDocument();
+    }
+    catch(exception) {
+      // Ignore errors, this exception will fire if the DOM is not loaded yet.
+    }
+  }
+
+  if (svgDoc && svgDoc.defaultView) {
+    svgWin = svgDoc.defaultView;
+  }
+  else if (jsClock.window) {
+    svgWin = jsClock.window;
+  }
+  else try {
+    svgWin = jsClock.getWindow();
+  }
+  catch(exception) {
+    // Ignore errors, this exception will fire if the DOM is not loaded yet.
+  }
+  return svgWin;
+}
 
 // End of clock widget.
 
@@ -223,15 +278,22 @@ function jst_clock_form_alter(&$form, $form_state, $form_id) {
       $form['jst_clock'] = array(
         '#type' => 'fieldset',
         '#title' => t('Clock widget'),
-        '#weight' => 1
+        '#description' => '<span class="jst_clock"></span><br/>' . t('After saving, you need to reload the page to see the new clock.'),
+        '#weight' => 1,
       );
 
       $form['jst_clock']['jstimer_jst_clock_type'] = array(
         '#type' => 'radios',
-        '#title' => t('Clock type') .' (<span class="jst_clock"></span>)',
+        '#title' => t('Clock type'),
         '#default_value' => variable_get('jstimer_jst_clock_type', DEFAULT_CLOCK_TYPE),
-        '#options' => array(0 => t('12-hour plain text'), 1 => t('24-hour plain text'), 2 => t('Analog plain')),
-        '#description' => t("The analog clock is experimental and only works on Firefox, Opera, and Safari.  IE will degrade to the 12-hour text clock.")
+        '#options' => array(0 => t('12-hour plain text'), 1 => t('24-hour plain text'), 2 => t('Analog canvas'), 3 => t('Analog SVG')),
+        '#description' => t("The analog clocks are experimental and only works on Firefox, Opera, and Safari and IE9.")
+      );
+      $form['jst_clock']['jst_clock_sva_file'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Clock svg file'),
+        '#default_value' => variable_get('jst_clock_sva_file', 'sleek1.svg'),
+        '#description' => t('The name of the svg file to use for the SVG clock.  They are stored in the widgets/clocks sub directory.'),
       );
       $form['buttons']['#weight'] = 2;
       break;

@@ -302,6 +302,10 @@ Date.prototype.jstimer_set_iso8601_date = function (string) {
     date_bits[6] && (date_bits[6] *= 1000); // convert mils
     date_obj = new Date(date_bits[0]||1970, date_bits[1]||0, date_bits[2]||0, date_bits[3]||0, date_bits[4]||0, date_bits[5]||0, date_bits[6]||0);
 
+    if (date_bits[0] < 1000) {
+      date_obj.setFullYear(date_bits[0]);
+    }
+
     //timezone handling
     var zone_offset = 0;  // in minutes
     var zone_plus_minus = date_bits[7] && date_bits[7].charAt(0);
